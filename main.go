@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os/exec"
@@ -21,6 +22,9 @@ type Image struct {
 }
 
 func main() {
+	isForce := flag.Bool("f", false, "force remove image, dockerrmi -f")
+	flag.Parse()
+
 	for {
 		imgs := imageList()
 		templates := &promptui.SelectTemplates{
@@ -73,7 +77,7 @@ func main() {
 
 		img := imgs[index]
 
-		dockerDeleteImage(img.ID)
+		dockerDeleteImage(img, *isForce)
 	}
 }
 
@@ -117,13 +121,18 @@ func dockerListImage() []string {
 	imageList := strings.Split(string(out), "\n")
 	imageList = imageList[1 : len(imageList)-1]
 
-	// spew.Dump(imageList)
 	return imageList
 }
 
-func dockerDeleteImage(imageID string) error {
+func dockerDeleteImage(image *Image, isForce bool) error {
 	// image is being used by stopped container
-	out, err := exec.Command("docker", "rmi", imageID).CombinedOutput()
+
+	if isForce {
+		out, err := exec.Command("docker", "rmi", "-f", image.ID).CombinedOutput()
+		fmt.Printf("%s\n", out)
+		return err
+	}
+	out, err := exec.Command("docker", "rmi", image.ID).CombinedOutput()
 	fmt.Printf("%s\n", out)
 	return err
 }
